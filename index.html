@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RQ12 Separate 1024 Results</title>
+  <style>
+    :root{--bg:#f6f7f5;--fg:#202124;--muted:#5f665f;--line:#d8ddd3;--card:#fff;--accent:#1d6c61}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+    main{max-width:980px;margin:0 auto;padding:24px 16px 44px}
+    h1{font-size:24px;margin:0 0 6px} h2{font-size:17px;margin:26px 0 10px}
+    p{color:var(--muted);line-height:1.55;margin:6px 0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:14px 0}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:12px}
+    .card b{display:block;font-size:22px;margin-bottom:2px}.card span{font-size:13px;color:var(--muted)}
+    table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
+    th,td{font-size:13px;text-align:left;padding:8px 10px;border-bottom:1px solid #edf0ea}
+    th{background:#fbfcfa;color:#4d514b} tr:last-child td{border-bottom:0}
+    a{color:var(--accent);font-weight:650;text-decoration:none} a:hover{text-decoration:underline}
+    .links{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+    code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:#ecefea;padding:1px 4px;border-radius:4px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>RQ12 Separate 1024 Results</h1>
+  <p><code>rq12_separate_1024</code>. Scope: RQ0, RQ1, RQ2. RQ2b includes PixArt-native text similarity controls only.</p>
+  <p>Prompt format example: <code>a apple and a pepper, two separate objects</code>.</p>
+
+  <div class="grid">
+    <div class="card"><b>2000</b><span>pair images judged</span></div>
+    <div class="card"><b>1963 ok</b><span>judge ok; 37 vlm_error</span></div>
+    <div class="card"><b>1745 ok</b><span>segment ok; 58 ambiguous; 197 missing</span></div>
+    <div class="card"><b>22/22</b><span>metrics dirs complete</span></div>
+  </div>
+
+  <h2>RQ0 Label Distribution</h2>
+  <table>
+    <thead><tr><th>field</th><th>true / n</th><th>rate</th></tr></thead>
+    <tbody>
+      <tr><td>a_present</td><td>1833 / 1963</td><td>0.9338</td></tr>
+      <tr><td>b_present</td><td>1712 / 1963</td><td>0.8721</td></tr>
+      <tr><td>merged</td><td>398 / 1963</td><td>0.2028</td></tr>
+      <tr><td>malformed_a</td><td>0 / 1963</td><td>0.0000</td></tr>
+      <tr><td>malformed_b</td><td>56 / 1963</td><td>0.0285</td></tr>
+      <tr><td>unreadable</td><td>31 / 1963</td><td>0.0158</td></tr>
+      <tr><td>uncertain</td><td>7 / 1963</td><td>0.0036</td></tr>
+      <tr><td>leak_a_to_b</td><td>16 / 1260</td><td>0.0127</td></tr>
+      <tr><td>leak_b_to_a</td><td>20 / 1260</td><td>0.0159</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Files</h2>
+  <div class="links">
+    <div class="card"><a href="data/summary.md">summary.md</a><p>Run manifest and counts.</p></div>
+    <div class="card"><a href="data/rq1_auc.csv">rq1_auc.csv</a><p>2376 rows. Image-level AUC. CI columns are NaN.</p></div>
+    <div class="card"><a href="data/rq2_correlations.csv">rq2_correlations.csv</a><p>14256 rows. Pair-level RQ2 correlations.</p></div>
+    <div class="card"><a href="data/rq2b_text_control.csv">rq2b_text_control.csv</a><p>85536 rows. RQ2b text controls.</p></div>
+    <div class="card"><a href="data/text_similarity.csv">text_similarity.csv</a><p>2600 rows. T5, caption projection, attn2 key/value.</p></div>
+    <div class="card"><a href="data/label_pair_order_rates.csv">label_pair_order_rates.csv</a><p>200 rows. Pair x order label rates.</p></div>
+    <div class="card"><a href="data/native_exclusions.csv">native_exclusions.csv</a><p>Native attribute exclusion counts.</p></div>
+    <div class="card"><a href="data/segment_pair_valid.csv">segment_pair_valid.csv</a><p>Pair-level segment valid rates.</p></div>
+    <div class="card"><a href="data/region_empty_rates.csv">region_empty_rates.csv</a><p>Empty region rates.</p></div>
+  </div>
+</main>
+</body>
+</html>

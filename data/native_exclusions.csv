@@ -1,0 +1,4 @@
+threshold,excluded_attributes_a,excluded_attributes_b,excluded_attributes_total
+0.3,40,20,60
+0.1,180,40,220
+0.5,0,20,20
