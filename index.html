@@ -9,7 +9,8 @@
     body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
     main{max-width:980px;margin:0 auto;padding:24px 16px 44px}
     h1{font-size:24px;margin:0 0 6px} h2{font-size:17px;margin:26px 0 10px}
-    p{color:var(--muted);line-height:1.55;margin:6px 0}
+    p,li{color:var(--muted);line-height:1.55}
+    p{margin:6px 0} ul{margin:8px 0 0 20px;padding:0}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:14px 0}
     .card{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:12px}
     .card b{display:block;font-size:22px;margin-bottom:2px}.card span{font-size:13px;color:var(--muted)}
@@ -50,6 +51,79 @@
     </tbody>
   </table>
 
+  <h2>1. 데이터 규모와 판정 성공률</h2>
+  <ul>
+    <li>pair 이미지 2,000장(100쌍 x 순서 2 x seed 10)을 판정했습니다.</li>
+    <li>판정 성공 1,963장, VLM 오류 37장입니다.</li>
+    <li>segment 결과는 ok 1,745, ambiguous_regions 58, missing_detection 197입니다. 영역 실패는 255장(12.8%)입니다.</li>
+    <li>누수 판정 대상은 1,260장입니다. 나머지 703장은 병합, 영역 실패, 불확실 등으로 자격 조건에서 빠졌습니다.</li>
+  </ul>
+
+  <h2>2. 라벨 분포 (RQ0)</h2>
+  <p>누락은 B에서 더 많습니다. A가 6.6%, B가 12.8% 빠집니다. 두 순서를 합친 값이라 프롬프트 어순 효과가 아닙니다. A는 개체 목록에서 앞에 오는 개체이고, 이 개체들이 더 자주 살아남는다는 뜻입니다. 개체마다 세기가 다르다는 가설과 방향이 맞습니다.</p>
+  <p>병합은 20.3%입니다. 분리 문구를 넣었는데도 다섯 장 중 한 장은 섞입니다. 변동이 충분해서 통계적으로 다루기 좋은 결과 변수입니다.</p>
+  <p>누수 라벨은 1~2%뿐입니다. 시각적 인상과 차이가 크므로, 현재 값은 현상 자체보다 측정 방식의 문제를 먼저 의심해야 합니다.</p>
+
+  <h2>3. RQ2 결과 (단독 지표 → pair 결과)</h2>
+  <p>기준: b11, SAE seed 42, step 4, topk, attention 영역. n = 200 (100쌍 x 순서 2). 괄호는 순서를 통제한 부분상관입니다.</p>
+  <table>
+    <thead><tr><th>관계</th><th>Pearson</th><th>Spearman</th></tr></thead>
+    <tbody>
+      <tr><td>r ↔ 누락 비대칭 (B 누락 - A 누락)</td><td>0.331 (0.331)</td><td>0.261 (0.261)</td></tr>
+      <tr><td>r ↔ 병합률</td><td>0.161</td><td>0.179</td></tr>
+      <tr><td>O_c ↔ 병합률</td><td>0.228</td><td>0.256</td></tr>
+      <tr><td>O ↔ 병합률</td><td>0.175</td><td>0.189</td></tr>
+      <tr><td>O_c ↔ 외부 누수율 (A→B)</td><td>0.117</td><td>0.118</td></tr>
+      <tr><td>O ↔ 외부 누수율 (A→B)</td><td>0.039</td><td>0.007</td></tr>
+      <tr><td>O_c ↔ 내부 누수 지표 (B→A)</td><td>0.641</td><td>0.730</td></tr>
+      <tr><td>O_c ↔ 내부 누수 지표 (A→B)</td><td>0.079</td><td>-0.068</td></tr>
+      <tr><td>O_c ↔ rho_a</td><td>-0.393</td><td>-0.445</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>압도 가설: r과 누락 비대칭의 관계가 예측한 방향입니다. r &gt; 0은 A가 강하다는 뜻이고, 그때 B가 더 자주 빠집니다. 순서를 통제해도 값이 그대로라 어순 효과가 아닙니다.</li>
+    <li>겹침 가설: 겹침이 클수록 병합이 많아집니다. 중심화한 O_c가 O보다 관계가 뚜렷합니다.</li>
+    <li>겹침 ↔ 외부 누수: 관계가 거의 없습니다. 단, 누수 라벨이 36건뿐이라 관계가 없다는 결론을 내릴 수 있는 상태는 아닙니다.</li>
+    <li>O_c ↔ rho_a = -0.44: 겹침이 크면 A가 자기 영역에서 덜 보존됩니다. 가설과 맞는 방향입니다.</li>
+  </ul>
+
+  <h2>4. RQ1 결과 (내부 지표 → 같은 이미지의 라벨)</h2>
+  <p>기준: step 4, topk, SAE seed 42. CI는 bootstrap 0회라 모두 NaN입니다.</p>
+  <table>
+    <thead><tr><th>지표 → 라벨</th><th>b11 attn</th><th>b14 attn</th><th>b11 전체</th><th>b14 전체</th></tr></thead>
+    <tbody>
+      <tr><td>rho_a → a_present</td><td>0.530</td><td>0.509</td><td>0.600</td><td>0.540</td></tr>
+      <tr><td>rho_b → b_present</td><td>0.458</td><td>0.486</td><td>0.568</td><td>0.581</td></tr>
+      <tr><td>내부 누수(A→B) → 누수 라벨</td><td>0.606</td><td>0.604</td><td>0.484</td><td>0.508</td></tr>
+      <tr><td>내부 누수(B→A) → 누수 라벨</td><td>0.617</td><td>0.620</td><td>0.538</td><td>0.572</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>rho는 존재 여부를 잘 맞추지 못합니다. 0.46~0.53으로 우연 수준입니다. 개체가 사라지면 그 영역 자체가 비어 NaN으로 빠지는 구조라 실패 사례가 분석에서 제외됐을 수 있습니다.</li>
+    <li>누수 지표는 0.60~0.62로 우연보다는 높습니다. 단, 양성이 16~20건이라 신뢰 구간이 매우 넓을 것입니다.</li>
+    <li>영역을 쓰는 쪽이 낫습니다. 누수 AUC가 attention 영역에서 0.60~0.62, 전체 이미지에서 0.48~0.57입니다.</li>
+  </ul>
+
+  <h2>5. 누수를 놓치는 구조</h2>
+  <ul>
+    <li>속성 고정: 개체당 2~3개만 봅니다. 목록에 없는 색 번짐이나 질감 전이는 세지 않습니다.</li>
+    <li>공유 속성 제거: 같은 문자열 속성을 빼기 때문에, 겹침이 큰 pair일수록 볼 속성이 줄어듭니다.</li>
+    <li>자격 조건: 둘 다 존재하고, 병합이 아니고, 영역이 유효하고, 영역이 이름과 맞아야 합니다. 이 조건에서 703장이 빠집니다.</li>
+    <li>프롬프트: "나열된 속성만 보라"고 지시하고 있어 모델이 보수적으로 답합니다.</li>
+  </ul>
+
+  <h2>6. 다음 작업</h2>
+  <ul>
+    <li>개방형 판정 경로 추가: 속성 목록 없이 "B에 A의 특징이 나타났는가, 있다면 무엇인가"를 자유 서술로 받습니다. 기존 목록 기반 판정도 남겨 둡니다.</li>
+    <li>자격 조건 완화: 영역이 없거나 병합으로 빠진 이미지도 전체 이미지만으로 개방형 판정을 돌립니다. 병합 이미지는 "병합이면서 누수"로 따로 기록합니다.</li>
+    <li>HAK 라벨 100장: 검수 HTML에서 누수 있음/없음과 방향을 표시합니다. 이 100장으로 두 판정 방식의 재현율과 정밀도를 계산합니다.</li>
+    <li>점검: 임계값 적용, malformed_a=0, 내부 누수 지표 비대칭, bootstrap CI를 확인합니다.</li>
+  </ul>
+  <p>진행 상태: review100 샘플 100장에 대해 개방형 Qwen 판정을 별도 실행했습니다. 결과는 ok 100/100, open_leak_a_to_b 23/100, open_leak_b_to_a 12/100, merged_with_transfer 17/100입니다. 이 값은 HAK 라벨과 비교하기 전의 자동 판정 수치입니다.</p>
+
+  <h2>7. 정리</h2>
+  <p>압도와 병합은 지금 데이터로도 가설과 맞는 신호가 보입니다. 누수는 판정을 고쳐야 판단할 수 있습니다. RQ1의 rho는 정의나 NaN 처리를 손봐야 할 가능성이 있습니다. 가장 먼저 할 일은 100장 사람 라벨과 개방형 판정 비교입니다.</p>
+
   <h2>Files</h2>
   <div class="links">
     <div class="card"><a href="review100/">review100 images</a><p>100 sampled images with original, A region, B region, and judgment fields.</p></div>
@@ -57,6 +131,7 @@
     <div class="card"><a href="data/rq1_auc.csv">rq1_auc.csv</a><p>2376 rows. Image-level AUC. CI columns are NaN.</p></div>
     <div class="card"><a href="data/rq2_correlations.csv">rq2_correlations.csv</a><p>14256 rows. Pair-level RQ2 correlations.</p></div>
     <div class="card"><a href="data/rq2b_text_control.csv">rq2b_text_control.csv</a><p>85536 rows. RQ2b text controls.</p></div>
+    <div class="card"><a href="data/open_review100_summary.csv">open_review100_summary.csv</a><p>100 rows. Open-ended Qwen leakage judgment for the review100 sample.</p></div>
     <div class="card"><a href="data/text_similarity.csv">text_similarity.csv</a><p>2600 rows. T5, caption projection, attn2 key/value.</p></div>
     <div class="card"><a href="data/label_pair_order_rates.csv">label_pair_order_rates.csv</a><p>200 rows. Pair x order label rates.</p></div>
     <div class="card"><a href="data/native_exclusions.csv">native_exclusions.csv</a><p>Native attribute exclusion counts.</p></div>
